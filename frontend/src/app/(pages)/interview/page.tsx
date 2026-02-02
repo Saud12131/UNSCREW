@@ -1,61 +1,75 @@
-"use client"
-import React, { useState } from "react";
+"use client";
+import React, { useEffect, useRef, useState } from "react";
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 
 export default function VoiceToText() {
-  const [recognizedText, setRecognizedText] = useState("");
-  const [isListening, setIsListening] = useState(false);
-  
-  let recognizer: sdk.SpeechRecognizer | undefined;
+  const [recognizer, setrecognizer] = useState<sdk.SpeechRecognizer | null>(null);
+  const [ws, setws] = useState<WebSocket | null>(null);
+  const [assistantResponse, setAssistantResponse] = useState("")
+  const [userresponse, setuserresponse] = useState("")
 
-  interface VoiceToTextState {
-    recognizedText: string;
-    isListening: boolean;
+  useEffect(()=>{
+    const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || '');
+    socket.onopen= ()=>{
+      console.log("WebSocket connected");
+    }
+    setws(socket);
+    socket.onmessage = (msg) =>{
+      setAssistantResponse(msg.data);
+      console.log("WebSocket message received:", msg.data);
+    }
+    socket.onerror = (err) => console.error(err);
+    socket.onclose = () => console.log("WS closed");
+
+    return () => socket.close();
+  },[])
+
+  const startRecognition = async () => {
+    const speechconfig = sdk.SpeechConfig.fromSubscription(
+      process.env.NEXT_PUBLIC_SPEECH_KEY || '',
+      process.env.NEXT_PUBLIC_SPEECH_REGION || '',
+    );
+    speechconfig.speechRecognitionLanguage = "en-US";
+
+    const audioconfig = sdk.AudioConfig.fromDefaultMicrophoneInput();
+    const sr = new sdk.SpeechRecognizer(speechconfig, audioconfig);
+    setrecognizer(sr);
+    // sr.recognizing = (s, e) => {
+    //   console.log("Partial:", e.result.text);
+    // }
+    sr.recognized = (s, e) => {
+      console.log("complete:", e.result.text);
+      setuserresponse(e.result.text);
+      ws?.send(
+        JSON.stringify({
+          answer_text: e.result.text
+        })
+      );
+    }
+sr.startContinuousRecognitionAsync();
+    sr.canceled = (s, event) => {
+      console.error("Canceled:", event);
+    };
+    sr.sessionStopped = (s, event) => {
+      console.log("Session stopped:", event);
+    };
+    sr.startContinuousRecognitionAsync();
   }
 
-  const startRecognition = () => {
-    console.log('Speech Key:', process.env.NEXT_PUBLIC_SPEECH_KEY);
-    console.log('Speech Region:', process.env.NEXT_PUBLIC_SPEECH_REGION);
-    const speechConfig = sdk.SpeechConfig.fromSubscription(
-      process.env.NEXT_PUBLIC_SPEECH_KEY || '',
-      process.env.NEXT_PUBLIC_SPEECH_REGION || '');
-    speechConfig.speechRecognitionLanguage = "en-US";
-
-    const audioConfig = sdk.AudioConfig.fromDefaultMicrophoneInput();
-    recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
-
-    setIsListening(true);
-
-    recognizer.recognizing = (s, e) => {
-      console.log(`Intermediate: ${e.result.text}`);
-    };
-
-    recognizer.recognized = (s, e) => {
-      if (e.result.reason === sdk.ResultReason.RecognizedSpeech) {
-        console.log(`Final: ${e.result.text}`);
-        setRecognizedText(e.result.text);
-
-        // TODO: Send this text to WebSocket backend
-        // ws.send(JSON.stringify({ type: "answer", text: e.result.text }));
-      }
-    };
-
-    recognizer.startContinuousRecognitionAsync();
-  };
-
   const stopRecognition = () => {
-    if (recognizer) {
-      recognizer.stopContinuousRecognitionAsync();
-    }
-    setIsListening(false);
+    if (!recognizer) return;
+    recognizer.stopContinuousRecognitionAsync(() => {
+      console.log("Recognition stopped");
+    });
   };
 
   return (
     <div>
-      <button onClick={isListening ? stopRecognition : startRecognition}>
-        {isListening ? "Stop" : "Start"} Listening
-      </button>
-      <p>Recognized Text: {recognizedText}</p>
+      <button onClick={startRecognition}>Start Listening</button>
+      <br />
+      <button onClick={stopRecognition}>Stop</button>
+      <h3>assistant - {assistantResponse}</h3>
+      <h3>user - {userresponse}</h3>
     </div>
   );
 }

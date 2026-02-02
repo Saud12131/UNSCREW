@@ -2,14 +2,15 @@ from fastapi import APIRouter
 from dotenv import load_dotenv
 from app.services.agent_services import generate_question, tts
 from fastapi import WebSocket
-
+from app.utils.prompt import prompt
+from services.blob_storage import upload_audio_to_blob
 load_dotenv()
 router = APIRouter()
 
 @router.websocket("/respond")
 async def agent_res(websocket:WebSocket):
     await websocket.accept()
-    history = [{"role": "system", "content": "Generate a question for an backend devloper interview, keep it like an interaction act as a human you are getting the whole chats so respond according to that context. fastapi"}]
+    history = [{"role": "system", "content":prompt}]
     first_question = generate_question(history)
     history.append({"role": "assistant", "content": first_question or "unable to extract the question."})
     question_audio = tts(first_question) if first_question is not None else None
@@ -20,7 +21,7 @@ async def agent_res(websocket:WebSocket):
     while True:
         try:
             data = await websocket.receive_json()
-            if "answer_text" not in data or not data["answer_text"].strip():
+            if "answer_text" not in  data or not data["answer_text"].strip():
                 continue
             user_answer = data["answer_text"]
             history.append({"role": "user", "content": user_answer})
