@@ -40,7 +40,7 @@ def tts(text:str):
     result = synthesizer.speak_text_async(text).get()
     if result is not None and result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
         print(f"Speech synthesized to {filepath}")
-        return filepath
+        return result.audio_data
     else:
         print(f"Speech synthesis failed: {getattr(result, 'reason', 'No result returned')}")
         return None

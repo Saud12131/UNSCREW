@@ -8,7 +8,7 @@ blob_service = BlobServiceClient.from_connection_string(
     os.getenv("AZURE_BLOB_CONNECTION_STRING")
 )
 
-container_client = blob_service.get_container_client("aiinterviewerblob01")
+container_client = blob_service.get_container_client("aiinterviwer")
 
 def upload_audio_to_blob(audio_bytes:bytes)-> str:
     """
