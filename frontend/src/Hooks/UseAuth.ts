@@ -16,7 +16,7 @@ export function useAuth() {
       return;
     }
 
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me`, {
+    fetch(`http://localhost:8000/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

@@ -1,82 +1,93 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 import { useAuth } from "@/Hooks/UseAuth";
-type Message = {
-  role: "assistant" | "user";
-  text: string;
-  audioUrl?: string;
-};
 
-export default function VoiceToText() {
+export default function VoiceInterview() {
+  const { user, loading } = useAuth();
+
+  const [ws, setWs] = useState<WebSocket | null>(null);
   const [recognizer, setRecognizer] =
     useState<sdk.SpeechRecognizer | null>(null);
-  const [ws, setWs] = useState<WebSocket | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const { user, loading } = useAuth();
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [interviewStarted, setInterviewStarted] = useState(false);
 
-if(loading) return <div>Loading...</div>
+  const [currentQuestion, setCurrentQuestion] = useState<string>("");
+  const [isListening, setIsListening] = useState(false);
+  const [isAISpeaking, setIsAISpeaking] = useState(false);
 
-if(!user) return <div>Please login to start interview</div>
-
-  // ----------------------------
-  // WebSocket Connection
-  // ----------------------------
+  // ----------------------------------------
+  // Auto Play AI Voice
+  // ----------------------------------------
   useEffect(() => {
-    const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || "");
+    if (!currentQuestion) return;
 
-    socket.onopen = () => console.log("WebSocket connected");
+    setIsAISpeaking(true);
+
+    const audio = new Audio(
+      (window as any).latestAudioUrl || ""
+    );
+
+    audio.play().catch(() => {});
+
+    audio.onended = () => {
+      setIsAISpeaking(false);
+      startRecognition(); // Auto start listening after AI finishes
+    };
+  }, [currentQuestion]);
+
+  // ----------------------------------------
+  // Start Interview (Create Session)
+  // ----------------------------------------
+  const startInterview = async () => {
+    const token = localStorage.getItem("access_token");
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/interview/start?role_applied=FullStack`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await res.json();
+
+    setSessionId(data.session_id);
+    setInterviewStarted(true);
+    connectWebSocket(data.session_id);
+  };
+
+  // ----------------------------------------
+  // WebSocket
+  // ----------------------------------------
+  const connectWebSocket = (session_id: string) => {
+    const socket = new WebSocket(
+      process.env.NEXT_PUBLIC_WS_URL || ""
+    );
+
+    socket.onopen = () => {
+      socket.send(JSON.stringify({ session_id }));
+    };
 
     socket.onmessage = (msg) => {
       const data = JSON.parse(msg.data);
 
       if (data.question) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            text: data.question,
-            audioUrl: data.audio_url,
-          },
-        ]);
+        setCurrentQuestion(data.question);
+        (window as any).latestAudioUrl = data.audio_url;
       }
     };
 
-    socket.onerror = (err) => console.error("WS Error:", err);
-    socket.onclose = () => console.log("WebSocket closed");
-
     setWs(socket);
+  };
 
-    return () => {
-      socket.close();
-    };
-  }, []);
-
-  // ----------------------------
-  // Auto Play Assistant Audio
-  // ----------------------------
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-
-    if (lastMessage?.role === "assistant" && lastMessage.audioUrl) {
-      const audio = new Audio(lastMessage.audioUrl);
-      audio.play().catch((err) => console.log("Autoplay blocked:", err));
-    }
-  }, [messages]);
-
-  // ----------------------------
-  // Auto Scroll To Bottom
-  // ----------------------------
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // ----------------------------
-  // Start Speech Recognition
-  // ----------------------------
+  // ----------------------------------------
+  // Speech Recognition
+  // ----------------------------------------
   const startRecognition = () => {
     if (!ws) return;
 
@@ -87,21 +98,26 @@ if(!user) return <div>Please login to start interview</div>
 
     speechConfig.speechRecognitionLanguage = "en-US";
 
-    const audioConfig = sdk.AudioConfig.fromDefaultMicrophoneInput();
-    const sr = new sdk.SpeechRecognizer(speechConfig, audioConfig);
+    const audioConfig =
+      sdk.AudioConfig.fromDefaultMicrophoneInput();
+
+    const sr = new sdk.SpeechRecognizer(
+      speechConfig,
+      audioConfig
+    );
+
+    setIsListening(true);
 
     sr.recognized = (_, e) => {
       if (e.result.text) {
-        const userText = e.result.text;
+        stopRecognition();
 
-        // Add user message to chat
-        setMessages((prev) => [
-          ...prev,
-          { role: "user", text: userText },
-        ]);
-
-        // Send to backend
-        ws.send(JSON.stringify({ answer_text: userText }));
+        ws.send(
+          JSON.stringify({
+            session_id: sessionId,
+            answer_text: e.result.text,
+          })
+        );
       }
     };
 
@@ -109,81 +125,79 @@ if(!user) return <div>Please login to start interview</div>
     setRecognizer(sr);
   };
 
-  // ----------------------------
-  // Stop Recognition
-  // ----------------------------
   const stopRecognition = () => {
     recognizer?.stopContinuousRecognitionAsync(() => {
       recognizer.close();
       setRecognizer(null);
+      setIsListening(false);
     });
   };
 
-  // ----------------------------
+  const endInterview = () => {
+    ws?.close();
+    stopRecognition();
+    setInterviewStarted(false);
+    setCurrentQuestion("");
+  };
+
+  // ----------------------------------------
+  // Guard
+  // ----------------------------------------
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <div>Please login first</div>;
+
+  // ----------------------------------------
   // UI
-  // ----------------------------
+  // ----------------------------------------
   return (
-    <div
-      style={{
-        maxWidth: "700px",
-        margin: "40px auto",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <h2>🎤 AI Voice Interview</h2>
+    <div className="h-screen flex flex-col items-center justify-between bg-gradient-to-b from-black via-slate-900 to-blue-900 text-white">
 
-      <div style={{ marginBottom: 20 }}>
-        <button onClick={startRecognition} style={{ marginRight: 10 }}>
-          Start Listening
-        </button>
-
-        <button onClick={stopRecognition}>
-          Stop
-        </button>
+      {/* Header */}
+      <div className="mt-10 text-xl font-semibold">
+        AI Interview
       </div>
 
-      <div
-        style={{
-          border: "1px solid #ddd",
-          padding: 20,
-          height: 400,
-          overflowY: "auto",
-          borderRadius: 10,
-          background: "#f9f9f9",
-        }}
-      >
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            style={{
-              marginBottom: 15,
-              textAlign: msg.role === "user" ? "right" : "left",
-            }}
+      {/* Center Content */}
+      <div className="flex flex-col items-center text-center px-6">
+        {!interviewStarted ? (
+          <button
+            onClick={startInterview}
+            className="bg-white text-black px-6 py-3 rounded-full font-medium"
           >
-            <div
-              style={{
-                display: "inline-block",
-                padding: "10px 14px",
-                borderRadius: 12,
-                background:
-                  msg.role === "user" ? "#007bff" : "#e5e5ea",
-                color: msg.role === "user" ? "white" : "black",
-                maxWidth: "80%",
-              }}
-            >
-              {msg.text}
+            Start Interview
+          </button>
+        ) : (
+          <>
+            <div className="text-lg max-w-xl">
+              {currentQuestion || "Preparing first question..."}
             </div>
 
-            {msg.audioUrl && (
-              <div style={{ marginTop: 5 }}>
-                <audio src={msg.audioUrl} controls />
-              </div>
-            )}
-          </div>
-        ))}
-
-        <div ref={messagesEndRef} />
+            <div className="mt-6 text-sm opacity-70">
+              {isAISpeaking && "AI is speaking..."}
+              {isListening && "Listening..."}
+            </div>
+          </>
+        )}
       </div>
+
+      {/* Bottom Controls */}
+      {interviewStarted && (
+        <div className="mb-12 flex gap-6">
+          <button
+            onClick={isListening ? stopRecognition : startRecognition}
+            className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center text-xl"
+          >
+            ⏸
+          </button>
+
+          <button
+            onClick={endInterview}
+            className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center text-xl"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }
