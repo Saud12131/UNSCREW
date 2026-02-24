@@ -55,6 +55,15 @@ export default function Home() {
             >
               Dashboard
             </Link>
+            <button
+              onClick={() => {
+                localStorage.removeItem("access_token");
+                setUser(null);
+              }}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+            >
+              Logout
+            </button>
           </div>
         ) : (
           <Link

@@ -1,7 +1,8 @@
 from fastapi import APIRouter
-from ..endpoints import user, agent
+from ..endpoints import user, agent, interview
 
 api_router = APIRouter()
 
 api_router.include_router(user.router,prefix="/user",tags=["user"])
 api_router.include_router(agent.router,prefix="/agent",tags=["ai-agent"])
+api_router.include_router(interview.router)

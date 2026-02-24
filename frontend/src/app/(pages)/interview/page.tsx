@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
-
+import { useAuth } from "@/Hooks/UseAuth";
 type Message = {
   role: "assistant" | "user";
   text: string;
@@ -14,8 +14,13 @@ export default function VoiceToText() {
     useState<sdk.SpeechRecognizer | null>(null);
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-
+  const { user, loading } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+
+if(loading) return <div>Loading...</div>
+
+if(!user) return <div>Please login to start interview</div>
 
   // ----------------------------
   // WebSocket Connection
