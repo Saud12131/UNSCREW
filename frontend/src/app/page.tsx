@@ -25,8 +25,13 @@ export default function Home() {
         return res.json();
       })
       .then((data) => setUser(data))
-      .catch(() => {
-        localStorage.removeItem("access_token");
+      .catch((error) => {
+        console.error("Auth error:", error);
+        // Only remove token if it's actually invalid/expired
+        if (error.message.includes("401") || error.message.includes("Unauthorized")) {
+          localStorage.removeItem("access_token");
+          setUser(null);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
