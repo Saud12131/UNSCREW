@@ -33,7 +33,7 @@ export default function VoiceInterview() {
     if (!currentQuestion) return;
     setIsAISpeaking(true);
     
-    const audio = new Audio((window as any).latestAudioUrl || "");
+    const audio = new Audio((window as unknown as { latestAudioUrl?: string }).latestAudioUrl || "");
     audioRef.current = audio;
     audio.play().catch(() => {});
     
@@ -68,7 +68,7 @@ export default function VoiceInterview() {
       if (data.question) {
         setIsProcessing(false);
         setCurrentQuestion(data.question);
-        (window as any).latestAudioUrl = data.audio_url;
+        (window as unknown as { latestAudioUrl?: string }).latestAudioUrl = data.audio_url;
       }
     };
     socket.onclose = () => stopRecognition();
@@ -132,7 +132,7 @@ export default function VoiceInterview() {
         {!interviewStarted ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-10">
             <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter uppercase">
-              LET'S START <br /> <span className="text-neutral-500 underline decoration-white/20">INTERVIEW</span>
+              LET&apos;S START <br /> <span className="text-neutral-500 underline decoration-white/20">INTERVIEW</span>
             </h1>
             <button 
               onClick={startInterview} 

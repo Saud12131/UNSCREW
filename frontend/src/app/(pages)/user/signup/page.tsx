@@ -33,8 +33,8 @@ export default function Signup() {
       if (!res.ok) throw new Error("Registration failed.");
 
       router.push("/login");
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }

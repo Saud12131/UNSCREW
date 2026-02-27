@@ -106,7 +106,7 @@ export default function HowItWorksSection() {
 function Step({ num, title, text }: { num: string; title: string; text: string }) {
   return (
     <div className="group border-l border-white/10 pl-6 hover:border-white transition-colors duration-500">
-      <span className="text-white/20 font-mono text-xs group-hover:text-white transition-colors">{num} //</span>
+      <span className="text-white/20 font-mono text-xs group-hover:text-white transition-colors">{num} {"/"}/</span>
       <h4 className="text-white font-bold uppercase text-md tracking-widest mt-1 italic">{title}</h4>
       <p className="text-neutral-500 text-sm mt-2 leading-relaxed">{text}</p>
     </div>

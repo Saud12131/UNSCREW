@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export function useAuth() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -16,7 +16,7 @@ export function useAuth() {
       return;
     }
 
-    fetch(`http://localhost:8000/me`, {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

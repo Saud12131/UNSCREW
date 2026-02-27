@@ -23,7 +23,7 @@ export default function LandingPage() {
       <FeaturesSection />
       <HowItWorksSection />
       
-      {/* Optional Minimal Footer */}
+            {/* Optional Minimal Footer */}
       <footer className="py-20 border-t border-white/5 flex justify-center opacity-20">
         <p className="text-[10px] tracking-[0.5em] uppercase text-white font-mono">
           System.Unscrew // 2026

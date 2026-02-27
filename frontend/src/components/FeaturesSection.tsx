@@ -19,7 +19,7 @@ export default function FeaturesSection() {
             viewport={{ once: true }}
             className="group"
           >
-            <span className="text-white/30 font-mono text-xs">{f.id} //</span>
+            <span className="text-white/30 font-mono text-xs">{f.id} {"/"}/</span>
             <h3 className="text-white font-bold text-lg mt-2 uppercase tracking-tight">{f.title}</h3>
             <p className="text-neutral-500 text-sm mt-3 leading-relaxed group-hover:text-neutral-300 transition-colors">
               {f.desc}

@@ -3,13 +3,13 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 export default function Navbar() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (token) {
       // Verify token by fetching user data
-      fetch(`http://localhost:8000/me`, {
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

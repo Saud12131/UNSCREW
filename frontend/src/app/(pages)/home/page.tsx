@@ -123,7 +123,7 @@ export default function Home() {
                 </p>
                 <p className="flex gap-4">
                   <span className="text-white">02//</span> 
-                  TO FINALIZE THE SESSION, VERBALLY INSTRUCT THE AGENT TO "END THE INTERVIEW".
+                  TO FINALIZE THE SESSION, VERBALLY INSTRUCT THE AGENT TO &quot;END THE INTERVIEW&quot;.
                 </p>
                 <p className="flex gap-4 border-t border-white/5 pt-4">
                   <span className="text-red-500">03//</span> 

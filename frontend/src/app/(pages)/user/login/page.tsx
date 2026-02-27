@@ -37,8 +37,8 @@ export default function Login() {
       const data = await res.json();
       localStorage.setItem("access_token", data.access_token);
       router.push("/");
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
