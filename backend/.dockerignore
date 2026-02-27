@@ -1,0 +1,29 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment (VERY IMPORTANT)
+.venv/
+venv/
+
+# Environment files
+.env
+
+# Git
+.git
+.gitignore
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Alembic cache (optional)
+alembic/__pycache__/
