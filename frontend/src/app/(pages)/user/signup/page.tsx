@@ -32,9 +32,10 @@ export default function Signup() {
 
       if (!res.ok) throw new Error("Registration failed.");
 
-      router.push("/login");
+      router.push("/user/login");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
+      console.log(error)
     } finally {
       setLoading(false);
     }

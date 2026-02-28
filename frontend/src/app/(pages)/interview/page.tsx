@@ -1,14 +1,24 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, Suspense } from "react";
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 import { useAuth } from "@/Hooks/UseAuth";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function VoiceInterview() {
   const { user, loading } = useAuth();
+
+  return (
+    <Suspense fallback={<div className="h-screen bg-black flex items-center justify-center text-white font-mono uppercase tracking-widest animate-pulse">Loading...</div>}>
+      <InterviewContent user={user} loading={loading} />
+    </Suspense>
+  );
+}
+
+function InterviewContent({ user, loading }: { user: { name: string; email: string } | null; loading: boolean }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   
   const domainParam = searchParams.get("domain") || "Software Engineer";
   const yoeParam = searchParams.get("yoe") || "0";
@@ -108,6 +118,8 @@ export default function VoiceInterview() {
   const endInterview = () => {
     ws?.close(); stopRecognition();
     setInterviewStarted(false); setCurrentQuestion("");
+    router.push("/home");
+   
   };
 
   if (loading) return <div className="h-screen bg-black flex items-center justify-center text-white font-mono uppercase tracking-widest animate-pulse">Initializing...</div>;

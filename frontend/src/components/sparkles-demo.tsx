@@ -135,7 +135,7 @@ export default function UnScrewLanding() {
             </li>
           </ul>
           <p className="text-neutral-500 text-sm mt-4 italic">
-            "Stop practicing with mirrors. Start with a mind that adapts."
+            &quot;Stop practicing with mirrors. Start with a mind that adapts.&quot;
           </p>
         </motion.div>
       </motion.section>
