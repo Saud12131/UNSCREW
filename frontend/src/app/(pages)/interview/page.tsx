@@ -5,6 +5,7 @@ import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 import { useAuth } from "@/Hooks/UseAuth";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
 
 export default function VoiceInterview() {
   const { user, loading } = useAuth();
@@ -26,6 +27,7 @@ function InterviewContent({ user, loading }: { user: { name: string; email: stri
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [interviewStarted, setInterviewStarted] = useState(false);
+  const [startingInterview, setStartingInterview] = useState(false);
   
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
   const [isListening, setIsListening] = useState(false);
@@ -57,32 +59,51 @@ function InterviewContent({ user, loading }: { user: { name: string; email: stri
   const startInterview = async () => {
     const token = localStorage.getItem("access_token");
     const combinedRole = `${domainParam} (${yoeParam} YOE)`;
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/interview/start?role_applied=${encodeURIComponent(combinedRole)}`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-    const data = await res.json();
-    setSessionId(data.session_id);
-    setInterviewStarted(true);
-    connectWebSocket(data.session_id);
+    setStartingInterview(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/interview/start?role_applied=${encodeURIComponent(combinedRole)}`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to start interview");
+      const data = await res.json();
+      setSessionId(data.session_id);
+      setInterviewStarted(true);
+      toast.success("Interview session started!");
+      connectWebSocket(data.session_id);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to start interview");
+    } finally {
+      setStartingInterview(false);
+    }
   };
 
   const connectWebSocket = (session_id: string) => {
-    const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || "");
-    socket.onopen = () => socket.send(JSON.stringify({ session_id }));
-    socket.onmessage = (msg) => {
-      const data = JSON.parse(msg.data);
-      if (data.question) {
-        setIsProcessing(false);
-        setCurrentQuestion(data.question);
-        (window as unknown as { latestAudioUrl?: string }).latestAudioUrl = data.audio_url;
-      }
-    };
-    socket.onclose = () => stopRecognition();
-    setWs(socket);
+    try {
+      const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || "");
+      socket.onopen = () => socket.send(JSON.stringify({ session_id }));
+      socket.onmessage = (msg) => {
+        const data = JSON.parse(msg.data);
+        if (data.question) {
+          setIsProcessing(false);
+          setCurrentQuestion(data.question);
+          (window as unknown as { latestAudioUrl?: string }).latestAudioUrl = data.audio_url;
+        }
+      };
+      socket.onclose = () => {
+        stopRecognition();
+        toast.info("Interview session ended");
+      };
+      socket.onerror = () => {
+        toast.error("Connection error. Please try again.");
+      };
+      setWs(socket);
+    } catch (error) {
+      toast.error("Failed to connect to interview session");
+    }
   };
 
   const startRecognition = () => {
@@ -116,10 +137,12 @@ function InterviewContent({ user, loading }: { user: { name: string; email: stri
   };
 
   const endInterview = () => {
-    ws?.close(); stopRecognition();
-    setInterviewStarted(false); setCurrentQuestion("");
+    ws?.close(); 
+    stopRecognition();
+    setInterviewStarted(false); 
+    setCurrentQuestion("");
+    toast.success("Interview completed successfully!");
     router.push("/home");
-   
   };
 
   if (loading) return <div className="h-screen bg-black flex items-center justify-center text-white font-mono uppercase tracking-widest animate-pulse">Initializing...</div>;
@@ -148,9 +171,10 @@ function InterviewContent({ user, loading }: { user: { name: string; email: stri
             </h1>
             <button 
               onClick={startInterview} 
-              className="px-12 py-5 bg-white text-black font-black uppercase text-[11px] tracking-[0.3em] rounded-full hover:scale-105 transition-all shadow-[0_0_50px_-10px_rgba(255,255,255,0.4)]"
+              disabled={startingInterview}
+              className="px-12 py-5 bg-white text-black font-black uppercase text-[11px] tracking-[0.3em] rounded-full hover:scale-105 transition-all shadow-[0_0_50px_-10px_rgba(255,255,255,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              Start Session
+              {startingInterview ? "Initializing..." : "Start Session"}
             </button>
           </motion.div>
         ) : (

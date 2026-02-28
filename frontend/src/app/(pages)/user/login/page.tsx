@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SparklesCore } from "@/components/ui/sparkles";
 import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -12,13 +13,11 @@ export default function Login() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const router = useRouter();
 
   const handleLogin = async () => {
     try {
       setLoading(true);
-      setError("");
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/user/auth/login`,
@@ -36,9 +35,10 @@ export default function Login() {
 
       const data = await res.json();
       localStorage.setItem("access_token", data.access_token);
+      toast.success("Login successful! Redirecting...");
       router.push("/");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -74,12 +74,6 @@ export default function Login() {
               Authentication Required // UnScrew v1.0
             </p>
           </div>
-
-          {error && (
-            <div className="mb-6 p-3 bg-red-500/10 border border-red-500/50 text-red-500 text-[10px] font-mono uppercase text-center rounded">
-              {error}
-            </div>
-          )}
 
           <div className="space-y-6">
             <div className="space-y-1">

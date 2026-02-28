@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
 export function useAuth() {
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
@@ -12,6 +13,7 @@ export function useAuth() {
     const token = localStorage.getItem("access_token");
 
     if (!token) {
+      toast.error("Please login to continue");
       router.push("/user/login");
       return;
     }
@@ -26,7 +28,8 @@ export function useAuth() {
         return res.json();
       })
       .then((data) => setUser(data))
-      .catch(() => {
+      .catch((error) => {
+        toast.error("Session expired. Please login again.");
         localStorage.removeItem("access_token");
         router.push("/user/login");
       })

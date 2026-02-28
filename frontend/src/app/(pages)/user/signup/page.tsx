@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SparklesCore } from "@/components/ui/sparkles";
 import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -13,13 +14,11 @@ export default function Signup() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const router = useRouter();
 
   const handleSignup = async () => {
     try {
       setLoading(true);
-      setError("");
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/user/auth/signup`,
@@ -32,10 +31,10 @@ export default function Signup() {
 
       if (!res.ok) throw new Error("Registration failed.");
 
+      toast.success("Registration successful! Redirecting to login...");
       router.push("/user/login");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      console.log(error)
+      toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }

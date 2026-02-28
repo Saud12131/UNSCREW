@@ -1,9 +1,16 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 
 export default function Navbar() {
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    setUser(null);
+    toast.success("Logged out successfully");
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -19,7 +26,8 @@ export default function Navbar() {
           return res.json();
         })
         .then((data) => setUser(data))
-        .catch(() => {
+        .catch((error) => {
+          toast.error("Failed to verify session. Please login again.");
           localStorage.removeItem("access_token");
           setUser(null);
         });
@@ -59,24 +67,40 @@ export default function Navbar() {
           <NavLink href="/home">Interview</NavLink>
         </nav>
 
-        {/* Action Button */}
+        {/* Action Buttons */}
         {user ? (
-          <a
-            href="/home"
-            className="
-              relative group
-              px-5 py-1.5
-              rounded-full
-              bg-white
-              text-black text-[11px] font-bold uppercase tracking-widest
-              hover:scale-105 active:scale-95
-              transition-all duration-300
-            "
-          >
-            <span className="relative z-10">Dashboard</span>
-            {/* Subtle Glow behind button on hover */}
-            <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-40 blur-md transition-opacity" />
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href="/home"
+              className="
+                relative group
+                px-5 py-1.5
+                rounded-full
+                bg-white
+                text-black text-[11px] font-bold uppercase tracking-widest
+                hover:scale-105 active:scale-95
+                transition-all duration-300
+              "
+            >
+              <span className="relative z-10">Dashboard</span>
+              {/* Subtle Glow behind button on hover */}
+              <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-40 blur-md transition-opacity" />
+            </a>
+            <button
+              onClick={handleLogout}
+              className="
+                relative group
+                px-5 py-1.5
+                rounded-full
+                border border-red-500/50
+                text-red-500 text-[11px] font-bold uppercase tracking-widest
+                hover:bg-red-500 hover:text-white
+                transition-all duration-300
+              "
+            >
+              <span className="relative z-10">Logout</span>
+            </button>
+          </div>
         ) : (
           <a
             href="/user/login"
